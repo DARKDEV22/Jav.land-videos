@@ -65,7 +65,11 @@ class JavLandSoup :
         y = releaseDate.split('-')[0]
         releaseDate = f'{d}/{m}/{y}'
 
-        length = int(detailList[1].split('<td>')[1][:-9]) 
+        try :
+            length = int(detailList[1].split('<td>')[1][:-9])
+        except :
+            length = int(detailList[1].split('<td>')[1][:-9][-4:-1])
+
         hour = length // 60 
         minute = length - (hour*60)
         length = f'{hour}:{minute} hr' if minute >= 10 else f'{hour}:0{minute} hr'
@@ -101,16 +105,28 @@ class JavLandSoup :
         
         try :
             videoSoup = str(soup).split('class="img-responsive" src="')[1].split('pl.jpg"/>\n<div class="" id="video_favorite_edit">')[0][36:]
+            if "real" in videoSoup :
+                temp = str("84" + videoSoup.split("/")[0][3:])
+                videoSoup = temp + "/" + temp
             sampleVideo = f'{self.baseVideoLink}{videoSoup[0]}/{videoSoup[:3]}/{videoSoup}_mhb_w.mp4'
+
             v_available = "200" in str(requests.get(sampleVideo))
             if not v_available :
-                relink = videoSoup.split("00")
-                relink = "".join(relink)
-                sampleVideo = f'{self.baseVideoLink}{videoSoup[0]}/{videoSoup[:3]}/{relink}_mhb_w.mp4'
+                sampleVideo = f'{self.baseVideoLink}{videoSoup[0]}/{videoSoup[:3]}/{videoSoup}_dmb_w.mp4'
+    
                 v_available = "200" in str(requests.get(sampleVideo))
                 if not v_available :
-                    sampleVideo = "---"
-
+                    relink = videoSoup.split("00")
+                    relink = "".join(relink)
+                    sampleVideo = f'{self.baseVideoLink}{videoSoup[0]}/{videoSoup[:3]}/{relink}_mhb_w.mp4'
+        
+                    v_available = "200" in str(requests.get(sampleVideo))
+                    if not v_available :
+                        sampleVideo = f'{self.baseVideoLink}{videoSoup[0]}/{videoSoup[:3]}/{relink}_dmb_w.mp4'
+            
+                        v_available = "200" in str(requests.get(sampleVideo))
+                        if not v_available :
+                            sampleVideo = "---"
         except :
             sampleVideo = "---"
         
@@ -144,31 +160,39 @@ class VideoStuff :
         urllib.request.urlretrieve(link, dest)
         print("[INFO] DOWNLOAD SUCCESS!!")
 
-    def splitVideoClip(self, filename: str, start_at = 4, duration_split = 5, speed = 1.0) :
+    def splitVideoClip(self, filename: str, start_at = 4, duration_split = 5, end_at = False, speed = 1.0) :
         """
         split video clip from duration 
         start_at = time(s) that what to start split
         duration_split = every second for splition
+        end_at = time(s) before end 
         return .mp4 split file in new folder
         """
-        clip = VideoFileClip(filename).speedx(speed)
-        splitList = [f'{start_at}-{start_at+duration_split}']
-        clipDuration = clip.duration
-        timeLeft = int((clipDuration - int(splitList[0].split("-")[1])) // duration_split)
-        for i in range(timeLeft) :
-            start = int(splitList[-1].split("-")[-1])
-            endtime = start + duration_split
-            splitList.append(f"{start}-{endtime}")
-        splitList[-1] = splitList[-1].split("-")[0] + "-" + str(int(clipDuration))
+        try :
+            clip = VideoFileClip(filename).speedx(speed)
+            splitList = [f'{start_at}-{start_at+duration_split}']
+            if end_at  :
+                print(end_at)
+                end_at /= speed
+            clipDuration = clip.duration - end_at
+            timeLeft = int((clipDuration - int(splitList[0].split("-")[1])) // duration_split)
         
-        folderName = f"{str(filename[:-4])}_split"
-        os.makedirs(folderName, exist_ok=True)
-        for i, timeSplit in enumerate(splitList, start=1) :
-            start = int(timeSplit.split("-")[0])
-            end = int(timeSplit.split("-")[1])
-            clip.subclip(start, end).write_videofile(f"{folderName}/{i}.mp4")        
-        
-        print(f"[INFO] {filename} SPLITING SUCCESS!!")
+            for i in range(timeLeft) :
+                start = int(splitList[-1].split("-")[-1])
+                endtime = start + duration_split
+                splitList.append(f"{start}-{endtime}")
+            splitList[-1] = splitList[-1].split("-")[0] + "-" + str(int(clipDuration))
+            
+            folderName = f"{str(filename[:-4])}_split"
+            os.makedirs(folderName, exist_ok=True)
+            for i, timeSplit in enumerate(splitList, start=1) :
+                start = int(timeSplit.split("-")[0])
+                end = int(timeSplit.split("-")[1])
+                clip.subclip(start, end).write_videofile(f"{folderName}/{i}.mp4")        
+            
+            print(f"[INFO] {filename} SPLITING SUCCESS!!")
+        except :
+            print(f"[ERROR] this file : {filename} cannot be split")
     
     def combineClip(self, folderpath: List[str], dest: str = "final.mp4", random = True) :
         """
@@ -216,8 +240,3 @@ class VideoStuff :
         ]).write_videofile(destname)
 
         print("[INFO] STACKING VIDEOs SUCCESS!!")
-
-
-if __name__ == "__main__" :
-    v = VideoStuff()
-    v.stackVID(["videotest.mp4", "videotest2.mp4", "videotest.mp4", "videotest2.mp4"])

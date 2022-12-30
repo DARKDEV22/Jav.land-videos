@@ -9,7 +9,7 @@ from moviepy.editor import VideoFileClip, AudioFileClip, CompositeAudioClip, con
 warnings.filterwarnings("ignore")
 
 class JavLandSoup :
-    def __init__(self, URL: str) :
+    def __init__(self, URL: str = "https://jav.land/en/v_mostwanted.php") :
         """
         scrap video detail from jav.land website
         input : URL from page that have many videos
@@ -142,6 +142,55 @@ class JavLandSoup :
             'imageLinks' : imageLinks 
         })
         return videoDetail
+
+    def getFullVideo(self, code: str) :
+        """
+        get full video link from code 
+        """
+        webs = ["hpj", "javguru", "javmost"]
+        fullLinks = {}
+        for idx, web_ in enumerate([self.hpj, self.guru, self.javmost]) :
+            current_url = web_(code)
+            if current_url != "---" :
+                fullLinks[webs[idx]] = current_url
+
+        return fullLinks
+    
+    def hpj(self, code: str) :
+        hpjSearch = "https://hpav.tv/?s="
+        hpjBase = "https://hpav.tv/"
+        URL = hpjSearch + code
+        r = requests.get(URL)
+        s = BeautifulSoup(r.text, "html.parser").find_all('div', class_="featured-content-image")
+
+        links = str(s).split('<a href="')[-1].split("rel")[0].strip()[:-1]
+        codeChecking = links.split("/")[-1].upper()
+        if codeChecking != code :
+            return "---"
+
+        videopageLink = hpjBase + links
+        r = requests.get(videopageLink)
+        avai = 200 == r.status_code
+        if avai :
+            return videopageLink
+
+        return '---'
+    
+    def guru(self, code: str) :
+        videopageLink = "https://jav.guru/" + code + '/'
+        avai = 200 == requests.get(videopageLink).status_code
+        if avai :
+            return videopageLink
+        return "---"
+
+    def javmost(self, code: str) :
+        videopageLink = "https://www5.javmost.com/" + code + '/'
+        r = requests.get(videopageLink).text
+        avai = "The page you're looking for doesn't exist." not in r
+        if avai :
+            return videopageLink
+        return "---"
+
     
     def __str__(self) :
         return "jav.land scraping site"

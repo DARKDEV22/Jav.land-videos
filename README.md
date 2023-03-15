@@ -91,7 +91,3 @@ v.stackVID(["v1.mp4", "v2.mp4", "v3.mp4", "v4.mp4"])
 and more
 - add audio
 - add clip speed
-
-example videos : 
-- [ena koume x mei washio](https://spankbang.com/7myy6/video/ena+koume+x+mei+washio)
-- [split screen JAV](https://spankbang.com/7myv3/video/split+screen+jav)
